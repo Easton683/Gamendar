@@ -64,6 +64,19 @@ def update_user(current_user, user_id):
         updates.append('is_active = ?')
         params.append(1 if data['is_active'] else 0)
 
+    if 'email' in data:
+        email = str(data['email']).strip()
+        err = _validate_user_fields(email=email)
+        if err:
+            return jsonify({'error': err}), 400
+        taken = db.execute(
+            'SELECT 1 FROM users WHERE lower(email) = lower(?) AND id != ?', (email, user_id)
+        ).fetchone()
+        if taken:
+            return jsonify({'error': 'Another user already has that email'}), 409
+        updates.append('email = ?')
+        params.append(email)
+
     if 'signal_number' in data:
         num = str(data['signal_number']).strip()[:20]
         if num and not re.match(r'^\+?[0-9]{7,20}$', num):
