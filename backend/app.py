@@ -61,8 +61,9 @@ def set_security_headers(response):
 
 init_db(app)
 
-if access_sso.enabled():
-    print(f'Cloudflare Access single sign-on is on for {access_sso.settings()[0]}')
+with app.app_context():
+    if access_sso.enabled():
+        print(f'Cloudflare Access single sign-on is on for {access_sso.settings()[0]}', flush=True)
 
 app.register_blueprint(auth_bp,          url_prefix='/api/auth')
 app.register_blueprint(events_bp,        url_prefix='/api/events')

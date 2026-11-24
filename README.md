@@ -152,8 +152,8 @@ The SQLite database in `./data/` is preserved across rebuilds.
 | `APP_PORT` | `3005` | Host port the app listens on |
 | `FLASK_DEBUG` | `false` | Enable Flask debug mode (dev only) |
 | `DATABASE_PATH` | `/data/calendar.db` | Path to SQLite database inside container |
-| `CF_ACCESS_TEAM_DOMAIN` | *(unset)* | Cloudflare Zero Trust team domain, e.g. `yourteam.cloudflareaccess.com`. Turns on single sign-on together with `CF_ACCESS_AUD`. |
-| `CF_ACCESS_AUD` | *(unset)* | The Access application's Application Audience (AUD) tag. |
+| `CF_ACCESS_TEAM_DOMAIN` | *(unset)* | Optional. Cloudflare Zero Trust team domain, e.g. `yourteam.cloudflareaccess.com`. Normally set in Admin → Single Sign-On instead; if set here it overrides that. |
+| `CF_ACCESS_AUD` | *(unset)* | Optional. The Access application's Application Audience (AUD) tag. Same as above. |
 
 **About `SECRET_KEY`:** it signs login tokens, so changing it logs everyone out.
 If you don't set one, the app generates 32 random bytes on first start and writes
@@ -173,7 +173,8 @@ Cloudflare Access application, people can skip Gamendar's own login.
 
 1. In Cloudflare Zero Trust, create a **Self-hosted** Access application (destination **Public DNS**) for Gamendar's hostname, with an Allow policy for your users.
 2. Copy its **Application Audience (AUD) Tag**, and your **team domain** (Zero Trust → Settings).
-3. Set `CF_ACCESS_TEAM_DOMAIN` and `CF_ACCESS_AUD` on the container and restart it. The log says `Cloudflare Access single sign-on is on for …`.
+3. Paste both into **Admin → Single Sign-On** and save. The section then shows whether your own visit was recognised.
+   (Alternatively set the `CF_ACCESS_TEAM_DOMAIN` and `CF_ACCESS_AUD` environment variables; they take precedence and lock the admin fields.)
 4. Make sure each user's email in **Admin → Edit user** is the email they log in to Cloudflare with.
 
 How it works: Cloudflare adds a signed token (`Cf-Access-Jwt-Assertion`) to every
@@ -324,8 +325,10 @@ neither; send empty strings to clear. Every save overwrites `note`, `start_time`
 |---|---|---|---|
 | `GET` | `/api/admin/users` | Admin | List all users |
 | `POST` | `/api/admin/users` | Admin | Create user |
-| `PUT` | `/api/admin/users/:id` | Admin | Update role / status / password |
+| `PUT` | `/api/admin/users/:id` | Admin | Update email / role / status / password |
 | `DELETE` | `/api/admin/users/:id` | Admin | Delete user |
+| `GET` | `/api/admin/sso` | Admin | Single sign-on settings and whether this request was recognised |
+| `POST` | `/api/admin/sso` | Admin | Save the Cloudflare Access team domain and AUD tag (both blank = off) |
 
 ### Discord
 

@@ -780,6 +780,36 @@
 
       <div style="margin-top:2.5rem">
         <div class="page-header" style="margin-bottom:1.25rem">
+          <div><h2>Single Sign-On</h2><p>Sign people in with their Cloudflare Access login</p></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span id="sso-status-badge"></span>
+            <button class="btn btn-primary btn-sm" onclick="saveSsoSettings()" style="width:auto" id="sso-save">Save</button>
+          </div>
+        </div>
+        <div class="table-wrap" style="padding:1.5rem">
+          <div id="sso-settings-error"></div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:1rem">
+            If Gamendar is behind a Cloudflare Access application, people whose Cloudflare login email matches their email here are signed in automatically.
+            Leave both fields blank to turn this off. Password sign-in keeps working either way.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+              <label>Team domain</label>
+              <input type="text" id="sso-team" placeholder="yourteam.cloudflareaccess.com" autocomplete="off" autocapitalize="off">
+              <div style="margin-top:6px;font-size:12px;color:var(--text3)">Cloudflare Zero Trust → Settings</div>
+            </div>
+            <div class="form-group">
+              <label>Application Audience (AUD) tag</label>
+              <input type="text" id="sso-aud" placeholder="64 hex characters" autocomplete="off" autocapitalize="off" style="font-family:var(--mono);font-size:13px">
+              <div style="margin-top:6px;font-size:12px;color:var(--text3)">On the Access application's overview page</div>
+            </div>
+          </div>
+          <div id="sso-status" style="font-size:13px;color:var(--text2)"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:2.5rem">
+        <div class="page-header" style="margin-bottom:1.25rem">
           <div><h2>Recurring Events</h2><p>Automatically create a new weekly event on a schedule</p></div>
           <div style="display:flex;gap:8px;align-items:center">
             <span id="recurring-status-badge"></span>
@@ -1087,7 +1117,7 @@ function showPage(name) {
   const navEl = document.getElementById('nav-' + (name === 'event-detail' ? 'events' : name));
   if (navEl) navEl.classList.add('active');
   if (name === 'events') loadEvents();
-  if (name === 'admin') { loadUsers(); loadRecurringSettings(); loadDiscordSettings(); loadSignalSettings(); loadSignalTemplates(); }
+  if (name === 'admin') { loadUsers(); loadSsoSettings(); loadRecurringSettings(); loadDiscordSettings(); loadSignalSettings(); loadSignalTemplates(); }
 }
 
 // ─── EVENTS ─────────────────────────────────────────────────────
@@ -2156,6 +2186,44 @@ async function createRecurringNow() {
 }
 
 // ─── DISCORD ─────────────────────────────────────────────────────
+// ─── SINGLE SIGN-ON ─────────────────────────────────────────────
+function renderSso(d) {
+  const team = document.getElementById('sso-team'), aud = document.getElementById('sso-aud');
+  team.value = d.team_domain || ''; aud.value = d.aud || '';
+  team.disabled = aud.disabled = d.env_locked;
+  document.getElementById('sso-save').style.display = d.env_locked ? 'none' : '';
+  document.getElementById('sso-status-badge').innerHTML = d.enabled
+    ? '<span class="badge" style="background:var(--green-bg);color:var(--green)">On</span>'
+    : '<span class="badge" style="background:var(--surface3);color:var(--text2)">Off</span>';
+  let status;
+  if (!d.enabled) status = '';
+  else if (d.access_email && d.matched_user) status = `✅ Working: Cloudflare says you're <strong style="color:var(--text)">${esc(d.access_email)}</strong>, which is the account <strong style="color:var(--text)">${esc(d.matched_user)}</strong>.`;
+  else if (d.access_email) status = `⚠️ Cloudflare says you're <strong style="color:var(--text)">${esc(d.access_email)}</strong>, but no active user here has that email.`;
+  else if (d.header_seen) status = `<span style="color:var(--red)">❌ Cloudflare sent a sign-in token but it didn't verify. Check that the team domain and AUD tag belong to this application.</span>`;
+  else status = "ℹ️ This visit didn't come through Cloudflare Access (normal on the LAN address).";
+  if (d.env_locked) status += `${status ? '<br>' : ''}🔒 Set by the <code>CF_ACCESS_TEAM_DOMAIN</code> / <code>CF_ACCESS_AUD</code> environment variables. Remove them from the container to manage this here.`;
+  document.getElementById('sso-status').innerHTML = status;
+}
+
+async function loadSsoSettings() {
+  try { renderSso(await api('/admin/sso')); }
+  catch(e) { console.error('Failed to load SSO settings', e); }
+}
+
+async function saveSsoSettings() {
+  const errEl = document.getElementById('sso-settings-error');
+  errEl.innerHTML = '';
+  try {
+    renderSso(await api('/admin/sso', { method: 'POST', body: JSON.stringify({
+      team_domain: document.getElementById('sso-team').value,
+      aud: document.getElementById('sso-aud').value
+    })}));
+    toast('Single sign-on settings saved!');
+  } catch(e) {
+    errEl.innerHTML = `<div class="error-msg">${esc(e.message)}</div>`;
+  }
+}
+
 async function loadDiscordSettings() {
   try {
     const data = await api('/discord/settings');

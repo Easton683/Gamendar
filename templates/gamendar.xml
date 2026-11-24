@@ -25,10 +25,10 @@
           Type="Variable" Display="always" Required="false" Mask="true"></Config>
 
   <Config Name="CF_ACCESS_TEAM_DOMAIN" Target="CF_ACCESS_TEAM_DOMAIN" Default="" Mode=""
-          Description="Optional single sign-on. If Gamendar is behind Cloudflare Access, your Zero Trust team domain, e.g. yourteam.cloudflareaccess.com. Needs CF_ACCESS_AUD too."
+          Description="Optional. Usually set in Admin - Single Sign-On instead. If set here it overrides that: your Cloudflare Zero Trust team domain, e.g. yourteam.cloudflareaccess.com. Needs CF_ACCESS_AUD too."
           Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
 
   <Config Name="CF_ACCESS_AUD" Target="CF_ACCESS_AUD" Default="" Mode=""
-          Description="Optional single sign-on. The Access application's Application Audience (AUD) tag."
+          Description="Optional. Usually set in Admin - Single Sign-On instead. The Access application's Application Audience (AUD) tag."
           Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
 </Container>
